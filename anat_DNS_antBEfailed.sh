@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Script: anat_DNS.sh
-# Purpose: Pipeline for processing T1 anatomical images for the DNS study
+# Script: anat_DNS_antBEfailed.sh
+# Purpose: Secondary pipeline for processing T1 anatomical images for the DNS study. Use this if anat_DNS.sh failed because ant Brain extraction did not work properly. This script will run freesurfer brain extraction first instead and then use that as input to antCT and rest of processing.
 # Author: Maxwell Elliott
 #
 
@@ -19,7 +19,7 @@
 ###############################################################################
 
 sub=$1 #$1 or flag -s  #20161103_21449 #pipenotes= Change away from HardCoding later 
-subDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub} #pipenotes= Change away from HardCoding later
+subDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}_rerun1 #pipenotes= Change away from HardCoding later
 QADir=${subDir}/QA
 antDir=${subDir}/antCT
 freeDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/${sub}
@@ -47,39 +47,88 @@ if [[ $T1pre == "not_collected" || $T1pre == "dont_use" ]];then
 	echo "Make sure you know what you are doing if you use this sub in any analysis" > ${freeDir}/000000.COPLANARnotT1.00000000
 fi
 
+
+export SUBJECTS_DIR=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/
+export FREESURFER_HOME=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/freesurfer
+
+
+#Delete all old directories that were bad
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "Deleting previous runs of anat_DNS.sh and epi_minProc_DNS.sh"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+rm -r ${freeDir} ${subDir}/antCT
+
 ##Set up directory
 mkdir -p $QADir
 cd $subDir
 mkdir -p $antDir
 mkdir -p $tmpDir
-export SUBJECTS_DIR=mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/ #pipenotes= update/Change away from HardCoding later also figure out FS_AVG stuff
-export FREESURFER_HOME=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/freesurfer
-
-if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz ]];then
-
-	if [[ ${T1pre} == *.nii.gz ]];then
-		T1=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}
-	else
+if [[ ${T1pre} == *.nii.gz ]];then
+	T1=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}
+else
 		###Check to make sure T1 has correct number of slices other exit and complain
 		lenT1=$(ls /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm | wc -l)
-		if [[ $lenT1 == 162 ]];then
-			to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
-			mv tmpT1.nii.gz ${tmpDir}/
-			T1=${tmpDir}/tmpT1.nii.gz
-		else
-			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!T1 is the Wrong Size, wrong number of slices!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Make Sure you Know what you are doing!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-			to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
-			mv tmpT1.nii.gz ${tmpDir}/
-			T1=${tmpDir}/tmpT1.nii.gz
-		fi
+	if [[ $lenT1 == 162 ]];then
+		to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
+		mv tmpT1.nii.gz ${tmpDir}/
+		T1=${tmpDir}/tmpT1.nii.gz
+	else
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!T1 is the Wrong Size, wrong number of slices!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Make Sure you Know what you are doing!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+		to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
+		mv tmpT1.nii.gz ${tmpDir}/
+		T1=${tmpDir}/tmpT1.nii.gz
 	fi
-
-	###Rigidly align, to avoid future processing issues
-	antsRegistrationSyN.sh -d 3 -t r -f ${templateDir}/${templatePre}.nii.gz -m $T1 -n $threads -o ${antDir}/${antPre}r
-
+fi
+###Rigidly align, to avoid future processing issues
+antsRegistrationSyN.sh -d 3 -t r -f ${templateDir}/${templatePre}.nii.gz -m $T1 -n $threads -o ${antDir}/${antPre}r
+if [[ ! -f ${freeDir}/surf/rh.pial ]];then
+	###Prep for Freesurfer with PreSkull Stripped
+	#Citation: followed directions from https://surfer.nmr.mgh.harvard.edu/fswiki/UserContributions/FAQ (search skull)
+	echo ""
+	echo "#########################################################################################################"
+	echo "#####################################FreeSurfer Surface Generation#######################################"
+	echo "#########################################################################################################"
+	echo ""
+	rm -r ${freeDir}
+	cd /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/
+	${FREESURFER_HOME}/bin/recon-all_noLink -all -s $sub -openmp $threads -i ${antDir}/${antPre}rWarped.nii.gz
+	echo $freeDir
+	recon-all -s $sub -localGI -openmp $threads
+else
+	echo ""
+	echo "!!!!!!!!!!!!!!!!!!!!!!!!!Skipping FreeSurfer, Completed Previously!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	echo ""
+fi
+#Run SUMA
+if [[ ! -f ${freeDir}/SUMA/std.60.lh.area.niml.dset ]];then
+	echo ""
+	echo "#########################################################################################################"
+	echo "######################################Map Surfaces to SUMA and AFNI######################################"
+	echo "#########################################################################################################"
+	echo ""
+	cd ${freeDir}
+	rm -r ${freeDir}/SUMA
+	##Add back missing orig files
+	#mri_convert ${antDir}/${antPre}ExtractedBrain0N4.nii.gz ${freeDir}/mri/001.mgz
+	#mri_convert ${freeDir}/mri/001.mgz ${freeDir}/mri/orig.mgz
+	#mkdir ${freeDir}/orig
+	@SUMA_Make_Spec_FS_lgi -NIFTI -ld 60 -sid FreeSurfer
+	#Convert to GIFTIs for potential use with PALM for TFCE
+	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.lh.area.niml.dset -prefix ${freeDir}/SUMA/std.60.lh.area
+	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.rh.area.niml.dset -prefix ${freeDir}/SUMA/std.60.rh.area
+	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.lh.thickness.niml.dset -prefix ${freeDir}/SUMA/std.60.lh.thickness
+	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.rh.thickness.niml.dset -prefix ${freeDir}/SUMA/std.60.rh.thickness
+else
+	echo ""
+	echo "!!!!!!!!!!!!!!!!!!!!!!!!!Skipping SUMA_Make_Spec, Completed Previously!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+	echo ""
+fi
+if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz ]];then
 	#Make Montage of sub T1 brain extraction to check quality
 
 	echo ""
@@ -87,7 +136,9 @@ if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz ]];th
 	echo "########################################ANTs Cortical Thickness##########################################"
 	echo "#########################################################################################################"
 	echo ""
-	###Run antCT
+	###Run antCT but skip brain Extract (step 1) by naming FS brain extraction with the correct convention
+	cp ${freeDir}/SUMA/brainmask.nii.gz ${antDir}/${antPre}ExtractedBrain.nii.gz
+	3dcalc -a ${antDir}/${antPre}ExtractedBrain.nii.gz -expr 'step(a)' -prefix ${antDir}/${antPre}BrainExtractionMask.nii.gz
 	antsCorticalThickness.sh -d 3 -a ${antDir}/${antPre}rWarped.nii.gz -e ${templateDir}/${templatePre}.nii.gz -m ${templateDir}/${templatePre}_BrainCerebellumProbabilityMask.nii.gz -p ${templateDir}/${templatePre}_BrainSegmentationPosteriors%d.nii.gz -t ${templateDir}/${templatePre}_Brain.nii.gz -o ${antDir}/${antPre}
 else
 	echo ""
@@ -124,53 +175,7 @@ if [[ ! -f ${QADir}/anat.BrainExtractionCheckAxial.png ]];then
 	CreateTiledMosaic -i ${antDir}/${antPre}BrainSegmentation0N4.nii.gz -r ${tmpDir}/highRes_BrainRBG.nii.gz -o ${QADir}/anat.BrainExtractionCheckAxial.png -a 0.5 -t -1x-1 -d 2 -p mask -s [5,mask,mask] -x ${tmpDir}/highRes_BrainRBGstep.nii.gz -f 0x1
 	CreateTiledMosaic -i ${antDir}/${antPre}BrainSegmentation0N4.nii.gz -r ${tmpDir}/highRes_BrainRBG.nii.gz -o ${QADir}/anat.BrainExtractionCheckSag.png -a 0.5 -t -1x-1 -d 0 -p mask -s [5,mask,mask] -x ${tmpDir}/highRes_BrainRBGstep.nii.gz -f 0x1
 fi
-if [[ ! -f ${freeDir}/surf/rh.pial ]];then
-	###Prep for Freesurfer with PreSkull Stripped
-	#Citation: followed directions from https://surfer.nmr.mgh.harvard.edu/fswiki/UserContributions/FAQ (search skull)
-	echo ""
-	echo "#########################################################################################################"
-	echo "#####################################FreeSurfer Surface Generation#######################################"
-	echo "#########################################################################################################"
-	echo ""
-	rm -r ${freeDir}
-	cd /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/
-	mri_convert ${antDir}/${antPre}ExtractedBrain0N4.nii.gz ${freeDir}/mri/001.mgz
-	#Run 
-	${FREESURFER_HOME}/bin/recon-all_noLink -autorecon1 -noskullstrip -s $sub -openmp $threads ##Had to edit recon-all to remove soft links in white matter step, links not allowed on BIAC
-	cp ${freeDir}/mri/T1.mgz ${freeDir}/mri/brainmask.auto.mgz
-	cp ${freeDir}/mri/brainmask.auto.mgz ${freeDir}/mri/brainmask.mgz
-	${FREESURFER_HOME}/bin/recon-all_noLink -autorecon2 -autorecon3 -s $sub -openmp $threads
-	echo $freeDir
-	recon-all -s $sub -localGI -openmp $threads
-else
-	echo ""
-	echo "!!!!!!!!!!!!!!!!!!!!!!!!!Skipping FreeSurfer, Completed Previously!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	echo ""
-fi
-#Run SUMA
-if [[ ! -f ${freeDir}/SUMA/std.60.lh.area.niml.dset ]];then
-	echo ""
-	echo "#########################################################################################################"
-	echo "######################################Map Surfaces to SUMA and AFNI######################################"
-	echo "#########################################################################################################"
-	echo ""
-	cd ${freeDir}
-	rm -r ${freeDir}/SUMA
-	##Add back missing orig files
-	mri_convert ${antDir}/${antPre}ExtractedBrain0N4.nii.gz ${freeDir}/mri/001.mgz
-	mri_convert ${freeDir}/mri/001.mgz ${freeDir}/mri/orig.mgz
-	mkdir ${freeDir}/orig
-	@SUMA_Make_Spec_FS_lgi -NIFTI -ld 60 -sid FreeSurfer
-	#Convert to GIFTIs for potential use with PALM for TFCE
-	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.lh.area.niml.dset -prefix ${freeDir}/SUMA/std.60.lh.area
-	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.rh.area.niml.dset -prefix ${freeDir}/SUMA/std.60.rh.area
-	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.lh.thickness.niml.dset -prefix ${freeDir}/SUMA/std.60.lh.thickness
-	#ConvertDset -o_gii -input ${freeDir}/SUMA/std.60.rh.thickness.niml.dset -prefix ${freeDir}/SUMA/std.60.rh.thickness
-else
-	echo ""
-	echo "!!!!!!!!!!!!!!!!!!!!!!!!!Skipping SUMA_Make_Spec, Completed Previously!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	echo ""
-fi
+
 
 #cleanup
 #mv highRes_* antCT/ #pipeNotes: add more deletion and clean up to minimize space, think about deleting Freesurfer and some of SUMA output
