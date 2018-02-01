@@ -183,7 +183,7 @@ fi
 if [[ $task == "rest1" && $restPre2 != "not_collected" ]];then
 	3dcalc -a ${tmpDir}/epi_dt.nii.gz'[0]' -expr 'a' -prefix ${outDir}/restVolRegBase.nii.gz
 	#####set up and submit a job to Process rest2 no that we have a volReg template from rest1
-	echo "/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/Pipelines/epi_minProc_DNS.sh $sub rest2 $threads >> ${subDir}/QA/LOG.rest2" >> ${outDir}/swarm.rest2
+	echo "/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Scripts/pipeline2.0_DNS/epi_minProc_DNS.sh $sub rest2 $threads >> ${subDir}/QA/LOG.rest2" >> ${outDir}/swarm.rest2
 	echo ""
 	echo "#########################################################################################################"
 	echo "#################################Submiting Job For rest2#################################################"
