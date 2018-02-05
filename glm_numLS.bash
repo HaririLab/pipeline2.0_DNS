@@ -103,3 +103,8 @@ rm ${outname}.nii  ### this file contains coef, fstat, and tstat for each condit
 
 mkdir -p $OUTDIR/$runname/
 cp -r $TMPOUTDIR/* $OUTDIR/$runname/
+
+# -- BEGIN POST-USER -- 
+echo "----JOB [$JOB_NAME.$JOB_ID] STOP [`date`]----" 
+mv $HOME/$JOB_NAME.$JOB_ID.out $OUTDIR/$runname/$JOB_NAME.$JOB_ID.out	 
+# -- END POST-USER -- 
