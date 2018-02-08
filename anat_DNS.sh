@@ -30,11 +30,13 @@ templatePre=DNS500template_MNI #pipenotes= update/Change away from HardCoding la
 #T1=$2 #/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Data/Anat/20161103_21449/bia5_21449_006.nii.gz #pipenotes= update/Change away from HardCoding later
 threads=1 #default in case thread argument is not passed
 threads=$2
-baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export PATH=$PATH:${baseDir}/scripts/  #add dependent scripts to path #pipenotes= update/Change to DNS scripts
+#baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+baseDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Scripts/pipeline2.0_DNS # using BASH_SOURCE doesn't work for cluster jobs bc they are saved as local copies to nodes (ARK)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 export OMP_NUM_THREADS=$threads
 export ANTSPATH=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/ants-2.2.0/bin/
+export QA_TOOLS=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/QAtools_v1.2/
+export PATH=$PATH:$ANTSPATH:${baseDir}/scripts/:/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/huginBin/bin/ #add dependent scripts to path #pipenotes= update/Change to DNS scripts
 
 T1pre=$(grep $sub /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/DataLocations.csv | cut -d "," -f3 | sed 's/ //g')
 if [[ $T1pre == "not_collected" || $T1pre == "dont_use" ]];then
