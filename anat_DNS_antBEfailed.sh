@@ -19,10 +19,11 @@
 ###############################################################################
 
 sub=$1 #$1 or flag -s  #20161103_21449 #pipenotes= Change away from HardCoding later 
-subDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}_rerun1 #pipenotes= Change away from HardCoding later
+subDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}_BEfsRedo #pipenotes= Change away from HardCoding later
+oldSubDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}
 QADir=${subDir}/QA
 antDir=${subDir}/antCT
-freeDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/${sub}
+freeDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/${sub}_BEfsRedo
 tmpDir=${antDir}/tmp
 antPre="highRes_" #pipenotes= Change away from HardCoding later
 templateDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
@@ -30,11 +31,13 @@ templatePre=DNS500template_MNI #pipenotes= update/Change away from HardCoding la
 #T1=$2 #/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Data/Anat/20161103_21449/bia5_21449_006.nii.gz #pipenotes= update/Change away from HardCoding later
 threads=1 #default in case thread argument is not passed
 threads=$2
-baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export PATH=$PATH:${baseDir}/scripts/  #add dependent scripts to path #pipenotes= update/Change to DNS scripts
+#baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+baseDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Scripts/pipeline2.0_DNS # using BASH_SOURCE doesn't work for cluster jobs bc they are saved as local copies to nodes (ARK)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 export OMP_NUM_THREADS=$threads
 export ANTSPATH=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/ants-2.2.0/bin/
+export QA_TOOLS=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/QAtools_v1.2/
+export PATH=$PATH:$ANTSPATH:${baseDir}/scripts/:/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/huginBin/bin/ #add dependent scripts to path #pipenotes= update/Change to DNS scripts
 
 T1pre=$(grep $sub /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/DataLocations.csv | cut -d "," -f3 | sed 's/ //g')
 if [[ $T1pre == "not_collected" || $T1pre == "dont_use" ]];then
@@ -96,9 +99,9 @@ if [[ ! -f ${freeDir}/surf/rh.pial ]];then
 	echo ""
 	rm -r ${freeDir}
 	cd /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/
-	${FREESURFER_HOME}/bin/recon-all_noLink -all -s $sub -openmp $threads -i ${antDir}/${antPre}rWarped.nii.gz
+	${FREESURFER_HOME}/bin/recon-all_noLink -all -s ${sub}_BEfsRedo -openmp $threads -i ${antDir}/${antPre}rWarped.nii.gz
 	echo $freeDir
-	recon-all -s $sub -localGI -openmp $threads
+	recon-all -s $sub_BEfsRedo -localGI -openmp $threads
 else
 	echo ""
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!Skipping FreeSurfer, Completed Previously!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
@@ -136,9 +139,12 @@ if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz ]];th
 	echo "########################################ANTs Cortical Thickness##########################################"
 	echo "#########################################################################################################"
 	echo ""
+	3dresample -inset ${freeDir}/SUMA/aseg.nii.gz -master ${oldSubDir}/antCT/highRes_BrainSegmentationPosteriors1.nii.gz -prefix ${tmpDir}/resampAseg.nii.gz
+	3dmask_tool -input ${tmpDir}/resampAseg.nii.gz -prefix ${tmpDir}/tmp2.test.nii.gz -dilate_input 4 -4 -fill_holes
+	3dcalc -a ${oldSubDir}/antCT/${antPre}rWarped.nii.gz -b ${tmpDir}/tmp2.test.nii.gz -expr 'a*b' -prefix ${tmpDir}/test.nii.gz
 	###Run antCT but skip brain Extract (step 1) by naming FS brain extraction with the correct convention
-	cp ${freeDir}/SUMA/brainmask.nii.gz ${antDir}/${antPre}ExtractedBrain.nii.gz
-	3dcalc -a ${antDir}/${antPre}ExtractedBrain.nii.gz -expr 'step(a)' -prefix ${antDir}/${antPre}BrainExtractionMask.nii.gz
+	3dcalc -a ${tmpDir}/test.nii.gz -expr 'step(a)' -prefix ${antDir}/${antPre}BrainExtractionMask.nii.gz
+	3dcalc -a ${antDir}/${antPre}BrainExtractionMask.nii.gz -b $${oldSubDir}/antCT/${antPre}rWarped.nii.gz -expr 'a*b' -prefix ${antDir}/${antPre}ExtractedBrain.nii.gz
 	antsCorticalThickness.sh -d 3 -a ${antDir}/${antPre}rWarped.nii.gz -e ${templateDir}/${templatePre}.nii.gz -m ${templateDir}/${templatePre}_BrainCerebellumProbabilityMask.nii.gz -p ${templateDir}/${templatePre}_BrainSegmentationPosteriors%d.nii.gz -t ${templateDir}/${templatePre}_Brain.nii.gz -o ${antDir}/${antPre}
 else
 	echo ""
