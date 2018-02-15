@@ -23,12 +23,12 @@
 #
 ###############################################################################
 sub=$1
-subDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}
+subDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}
 outDir=${subDir}/rest
 tmpDir=${outDir}/tmp
 minProcEpi1=${outDir}/rest1/epiWarped.nii.gz
 minProcEpi2=${outDir}/rest2/epiWarped.nii.gz
-templateDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
+templateDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
 templatePre=DNS500template_MNI_  #pipenotes= update/Change away from HardCoding later
 antDir=${subDir}/antCT
 antPre="highRes_" #pipenotes= Change away from HardCoding later

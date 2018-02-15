@@ -19,32 +19,32 @@
 ###############################################################################
 
 sub=$1 #$1 or flag -s  #20161103_21449 #pipenotes= Change away from HardCoding later 
-subDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub} #pipenotes= Change away from HardCoding later
+subDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub} #pipenotes= Change away from HardCoding later
 QADir=${subDir}/QA
 antDir=${subDir}/antCT
-freeDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/${sub}
+freeDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/${sub}
 tmpDir=${antDir}/tmp
 antPre="highRes_" #pipenotes= Change away from HardCoding later
-templateDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
+templateDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
 templatePre=DNS500template_MNI #pipenotes= update/Change away from HardCoding later
-#T1=$2 #/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Data/Anat/20161103_21449/bia5_21449_006.nii.gz #pipenotes= update/Change away from HardCoding later
+#T1=$2 #/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Data/Anat/20161103_21449/bia5_21449_006.nii.gz #pipenotes= update/Change away from HardCoding later
 threads=1 #default in case thread argument is not passed
 threads=$2
 #baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-baseDir=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Scripts/pipeline2.0_DNS # using BASH_SOURCE doesn't work for cluster jobs bc they are saved as local copies to nodes (ARK)
+baseDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Scripts/pipeline2.0_DNS # using BASH_SOURCE doesn't work for cluster jobs bc they are saved as local copies to nodes (ARK)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 export OMP_NUM_THREADS=$threads
-export ANTSPATH=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/ants-2.2.0/bin/
-export QA_TOOLS=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/QAtools_v1.2/
-export PATH=$PATH:$ANTSPATH:${baseDir}/scripts/:/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/huginBin/bin/ #add dependent scripts to path #pipenotes= update/Change to DNS scripts
+export ANTSPATH=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/ants-2.2.0/bin/
+export QA_TOOLS=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/QAtools_v1.2/
+export PATH=$PATH:$ANTSPATH:${baseDir}/scripts/:/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/huginBin/bin/ #add dependent scripts to path #pipenotes= update/Change to DNS scripts
 
-T1pre=$(grep $sub /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/DataLocations.csv | cut -d "," -f3 | sed 's/ //g')
+T1pre=$(grep $sub /mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/DataLocations.csv | cut -d "," -f3 | sed 's/ //g')
 if [[ $T1pre == "not_collected" || $T1pre == "dont_use" ]];then
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!NO T1, Trying to Run on Coplanar so that EPIs might be salvaged!!!!!!!!!!!!!!!!!!!!!!"
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!Make sure you know what you are doing if you use this sub in any analysis!!!!!!!!!!!!!!"
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-	T1pre=$(grep $sub /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/DataLocations.csv | cut -d "," -f2 | sed 's/ //g')
+	T1pre=$(grep $sub /mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/DataLocations.csv | cut -d "," -f2 | sed 's/ //g')
 	echo "Make sure you know what you are doing if you use this sub in any analysis" > ${antDir}/000000.COPLANARnotT1.00000000
 	echo "Make sure you know what you are doing if you use this sub in any analysis" > ${freeDir}/000000.COPLANARnotT1.00000000
 fi
@@ -54,18 +54,18 @@ mkdir -p $QADir
 cd $subDir
 mkdir -p $antDir
 mkdir -p $tmpDir
-export SUBJECTS_DIR=mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/ #pipenotes= update/Change away from HardCoding later also figure out FS_AVG stuff
-export FREESURFER_HOME=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/freesurfer
+export SUBJECTS_DIR=mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/ #pipenotes= update/Change away from HardCoding later also figure out FS_AVG stuff
+export FREESURFER_HOME=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/scripts/freesurfer
 
 if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz ]];then
 
 	if [[ ${T1pre} == *.nii.gz ]];then
-		T1=/mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}
+		T1=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/${T1pre}
 	else
 		###Check to make sure T1 has correct number of slices other exit and complain
-		lenT1=$(ls /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm | wc -l)
+		lenT1=$(ls /mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm | wc -l)
 		if [[ $lenT1 == 162 ]];then
-			to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
+			to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
 			mv tmpT1.nii.gz ${tmpDir}/
 			T1=${tmpDir}/tmpT1.nii.gz
 		else
@@ -73,7 +73,7 @@ if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz ]];th
 			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!T1 is the Wrong Size, wrong number of slices!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Make Sure you Know what you are doing!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 			echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-			to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
+			to3d -anat -prefix tmpT1.nii.gz /mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/${T1pre}/*.dcm
 			mv tmpT1.nii.gz ${tmpDir}/
 			T1=${tmpDir}/tmpT1.nii.gz
 		fi
@@ -135,7 +135,7 @@ if [[ ! -f ${freeDir}/surf/rh.pial ]];then
 	echo "#########################################################################################################"
 	echo ""
 	rm -r ${freeDir}
-	cd /mnt/BIAC/munin2.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/
+	cd /mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/FreeSurfer_AllSubs/
 	mri_convert ${antDir}/${antPre}ExtractedBrain0N4.nii.gz ${freeDir}/mri/001.mgz
 	#Run 
 	${FREESURFER_HOME}/bin/recon-all_noLink -autorecon1 -noskullstrip -s $sub -openmp $threads ##Had to edit recon-all to remove soft links in white matter step, links not allowed on BIAC

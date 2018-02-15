@@ -83,6 +83,14 @@ outname=glm_output_4
   -Rbeta ${outname}_betas.nii.gz \
   -noFDR 
 
+
+# add habituation contrast
+3dcalc -prefix habit_1g2g3g4.nii.gz  -a glm_output_1_betas.nii.gz'[2]' -b glm_output_1_betas.nii.gz'[0]' \
+	-c glm_output_2_betas.nii.gz'[2]' -d glm_output_2_betas.nii.gz'[0]' \
+	-e glm_output_3_betas.nii.gz'[2]' -f glm_output_3_betas.nii.gz'[0]' \
+	-g glm_output_4_betas.nii.gz'[2]' -h glm_output_4_betas.nii.gz'[0]' -expr '(0.75*(a+b)+0.25*(c+d)-0.25*(e+f)-0.75*(g+h))'
+
+# now relabel the files according to expression
 case $FACESORDER in
 	1) fear=1; neut=2; ange=3; surp=4; ;; # FNAS
 	2) fear=2; neut=1; ange=4; surp=3; ;; # NFSA
@@ -90,8 +98,7 @@ case $FACESORDER in
 	4) fear=4; neut=3; ange=2; surp=1; ;; # SANF
 	*)  echo "Invalid faces order $FACESORDER!!! Exiting."
 		exit; ;;
-esac
-
+esac	
 mv glm_output_${fear}_betas.nii.gz fear_betas.nii.gz
 mv glm_output_${neut}_betas.nii.gz neutral_betas.nii.gz
 mv glm_output_${ange}_betas.nii.gz anger_betas.nii.gz
