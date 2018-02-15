@@ -96,8 +96,11 @@ else
 	echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Skipping antCT, Completed Previously!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 	echo ""
 fi
-if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur8mm.nii.gz ]];then
-	3dBlurInMask -input ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz -mask ${templateDir}/${templatePre}AvgGMSegWarped25connected.nii.gz -FWHM 8 -prefix ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur8mm.nii.gz
+##Smooth Cortical Thickness for 2nd level; 
+# ARK updated this from GMSegWarped25connected & FWHM 8 to GMSegWarped30 & FWHM 6 on 2/15/18 since that's what had been run in all DNS subjects (not sure why that was run, but this section of the script hadn't previously been running due to a missing "_")
+if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur6mm_mask30.nii ]];then
+	3dBlurInMask -input ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate.nii.gz -mask ${templateDir}/${templatePre}_AvgGMSegWarped30.nii.gz -FWHM 6 -prefix ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur6mm_mask30.nii.gz
+	gunzip ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur6mm_mask30.nii.gz # need to unzip so folks can use it in SPM
 fi
 ###Make VBM and smooth
 if [[ ! -f ${antDir}/${antPre}JacModVBM_blur8mm.nii.gz ]];then
