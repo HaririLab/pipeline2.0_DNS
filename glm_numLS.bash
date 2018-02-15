@@ -3,7 +3,7 @@
 # gets subject IDS from DNS.01/Analysis/All_Imaging/DNSids.txt
 
 SUBJ=$1
-BASEDIR=$HOME/experiments/DNS.01/
+BASEDIR=$(findexp DNS.01)
 OUTDIR=$BASEDIR/Analysis/All_Imaging/$SUBJ/numLS/
 TMPOUTDIR=$TMPDIR
 fthr=0.5; dthr=2.5; # FD and DVARS thresholds

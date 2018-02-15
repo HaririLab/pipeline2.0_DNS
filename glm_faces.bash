@@ -8,7 +8,7 @@
 # -- END GLOBAL DIRECTIVE -- 
 
 index=${SGE_TASK_ID}
-BASEDIR=$HOME/experiments/DNS.01/
+BASEDIR=$(findexp DNS.01)
 OUTDIR=$BASEDIR/Analysis/All_Imaging/
 fthr=0.5; dthr=2.5; # FD and DVARS thresholds
 runname=glm_AFNI_splitRuns_noShapes
