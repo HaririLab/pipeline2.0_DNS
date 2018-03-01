@@ -109,15 +109,16 @@ if [[ ! -f ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur6mm_mask
 	gunzip ${antDir}/${antPre}CorticalThicknessNormalizedToTemplate_blur6mm_mask30.nii.gz # need to unzip so folks can use it in SPM
 fi
 ###Make VBM and smooth
-if [[ ! -f ${antDir}/${antPre}JacModVBM_blur8mm.nii.gz ]];then
-	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors2.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${antDir}/${antPre}GMwarped.nii.gz
-	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors4.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${antDir}/${antPre}SCwarped.nii.gz
-	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors5.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${antDir}/${antPre}BSwarped.nii.gz
-	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors6.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${antDir}/${antPre}CBwarped.nii.gz
-	3dcalc -a ${antDir}/${antPre}GMwarped.nii.gz -b ${antDir}/${antPre}SCwarped.nii.gz -c ${antDir}/${antPre}CBwarped.nii.gz -d ${antDir}/${antPre}BSwarped.nii.gz -e ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -i ${antDir}/${antPre}SubjectToTemplateLogJacobian.nii.gz -expr '(a*equals(e,1)+b*equals(e,2)+c*equals(e,3)+d*equals(e,4))*i' -prefix ${antDir}/${antPre}JacModVBM.nii.gz
-	3dcalc -a ${antDir}/${antPre}GMwarped.nii.gz -b ${antDir}/${antPre}SCwarped.nii.gz -c ${antDir}/${antPre}CBwarped.nii.gz -d ${antDir}/${antPre}BSwarped.nii.gz -e ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -expr '(a*equals(e,1)+b*equals(e,2)+c*equals(e,3)+d*equals(e,4))' -prefix ${antDir}/${antPre}noModVBM.nii.gz
-	3dBlurInMask -input ${antDir}/${antPre}JacModVBM.nii.gz -Mmask ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -FWHM 8 -prefix ${antDir}/${antPre}JacModVBM_blur8mm.nii.gz
-	3dBlurInMask -input ${antDir}/${antPre}noModVBM.nii.gz -Mmask ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -FWHM 8 -prefix ${antDir}/${antPre}noModVBM_blur8mm.nii.gz
+if [[ ! -f ${antDir}/${antPre}JacModVBM_blur8mm.nii.gz ]] && [[ ! -f ${antDir}/${antPre}JacModVBM_blur8mm.nii ]];then
+	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors2.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${tmpDir}/${antPre}GMwarped.nii.gz
+	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors4.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${tmpDir}/${antPre}SCwarped.nii.gz
+	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors5.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${tmpDir}/${antPre}BSwarped.nii.gz
+	antsApplyTransforms -d 3 -r ${templateDir}/${templatePre}.nii.gz -i ${antDir}/${antPre}BrainSegmentationPosteriors6.nii.gz -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t ${antDir}/${antPre}SubjectToTemplate0GenericAffine.mat -o ${tmpDir}/${antPre}CBwarped.nii.gz
+	3dcalc -a ${tmpDir}/${antPre}GMwarped.nii.gz -b ${tmpDir}/${antPre}SCwarped.nii.gz -c ${tmpDir}/${antPre}CBwarped.nii.gz -d ${tmpDir}/${antPre}BSwarped.nii.gz -e ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -i ${antDir}/${antPre}SubjectToTemplateLogJacobian.nii.gz -expr '(a*equals(e,1)+b*equals(e,2)+c*equals(e,3)+d*equals(e,4))*i' -prefix ${tmpDir}/${antPre}JacModVBM.nii.gz
+	3dcalc -a ${tmpDir}/${antPre}GMwarped.nii.gz -b ${tmpDir}/${antPre}SCwarped.nii.gz -c ${tmpDir}/${antPre}CBwarped.nii.gz -d ${tmpDir}/${antPre}BSwarped.nii.gz -e ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -expr '(a*equals(e,1)+b*equals(e,2)+c*equals(e,3)+d*equals(e,4))' -prefix ${tmpDir}/${antPre}noModVBM.nii.gz
+	3dBlurInMask -input ${tmpDir}/${antPre}JacModVBM.nii.gz -Mmask ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -FWHM 8 -prefix ${antDir}/antsVBM_jacMod_blur8mm.nii.gz
+	3dBlurInMask -input ${tmpDir}/${antPre}noModVBM.nii.gz -Mmask ${templateDir}/DNS500_cauc568_BlurMask30.nii.gz -FWHM 8 -prefix ${antDir}/antsVBM_noMod_blur8mm.nii.gz
+	gunzip ${antDir}/antsVBM_jacMod_blur8mm.nii.gz # unzip for use in SPM
 fi
 if [[ ! -f ${QADir}/anat.BrainExtractionCheckAxial.png ]];then
 	echo ""
