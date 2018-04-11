@@ -11,8 +11,8 @@ BASEDIR=$(findexp DNS.01)
 index=${SGE_TASK_ID}
 ID=$1 #`head -$index $BASEDIR/Analysis/All_Imaging/DNSids_faces1263.txt | tail -1` # $1
 
-ROI=$BASEDIR/Analysis/SPM/ROI/NEW_PIPELINE/Amygdala/Tyszka_R_ALL.nii # $2
-OUTNAME=Tyszka_R_ALL #$3
+ROI=$BASEDIR/Analysis/SPM/ROI/NEW_PIPELINE/Amygdala/Tyszka_L_ALL.nii # $2
+OUTNAME=Tyszka_L_ALL #$3
 PROCDIR=$BASEDIR/Analysis/All_Imaging/$ID/faces/
 OUTDIR=$BASEDIR/Analysis/All_Imaging/$ID/faces/gPPI/$OUTNAME
 FACESORDER=`grep "$ID" $BASEDIR/Analysis/All_Imaging/DataLocations.csv | cut -d, -f12`;

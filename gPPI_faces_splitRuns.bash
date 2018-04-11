@@ -1,17 +1,17 @@
 # Following instructions here: https://afni.nimh.nih.gov/CD-CorrAna
 
 # --- BEGIN GLOBAL DIRECTIVE -- 
-#$ -o $HOME/$JOB_NAME.$JOB_ID.out
-#$ -e $HOME/$JOB_NAME.$JOB_ID.out
+#$ -o $HOME/$JOB_NAME.$JOB_ID.$TASK_ID.out
+#$ -e $HOME/$JOB_NAME.$JOB_ID.$TASK_ID.out
 # -- END GLOBAL DIRECTIVE -- 
 
 BASEDIR=$(findexp DNS.01)
 
 index=${SGE_TASK_ID}
-ID=$1 #`head -$index $BASEDIR/Analysis/All_Imaging/DNSids_faces1263.txt | tail -1` # $1
+ID=`head -$index $BASEDIR/Analysis/All_Imaging/DNSids_faces1263.txt | tail -1` # $1
 
-ROI=$BASEDIR/Analysis/SPM/ROI/NEW_PIPELINE/Amygdala/Tyszka_R_ALL.nii # $2
-OUTNAME=Tyszka_R_ALL_splitRuns2 #$3
+ROI=$BASEDIR/Analysis/SPM/ROI/NEW_PIPELINE/Amygdala/Tyszka_bilat_ALL.nii # $2
+OUTNAME=Tyszka_bilat_ALL_splitRuns #$3
 PROCDIR=$BASEDIR/Analysis/All_Imaging/$ID/faces/
 OUTDIR=$TMPDIR
 OUTDIRFINAL=$BASEDIR/Analysis/All_Imaging/$ID/faces/gPPI/$OUTNAME
@@ -134,6 +134,6 @@ cp -r $OUTDIR/* $OUTDIRFINAL
  
 # -- BEGIN POST-USER -- 
 echo "----JOB [$JOB_NAME.$JOB_ID] STOP [`date`]----" 
-mv $HOME/$JOB_NAME.$JOB_ID.out $OUTDIRFINAL/$JOB_NAME.$JOB_ID.out	 
+mv $HOME/$JOB_NAME.$JOB_ID.${SGE_TASK_ID}.out $OUTDIRFINAL/$JOB_NAME.$JOB_ID.${SGE_TASK_ID}.out	 
 # -- END POST-USER --   
   
