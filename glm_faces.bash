@@ -83,7 +83,6 @@ outname=glm_output_4
   -Rbeta ${outname}_betas.nii.gz \
   -noFDR 
 
-
 # add habituation contrast
 3dcalc -prefix habit_1g2g3g4.nii.gz  -a glm_output_1_betas.nii.gz'[2]' -b glm_output_1_betas.nii.gz'[0]' \
 	-c glm_output_2_betas.nii.gz'[2]' -d glm_output_2_betas.nii.gz'[0]' \
