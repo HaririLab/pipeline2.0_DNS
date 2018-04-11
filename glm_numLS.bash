@@ -2,6 +2,11 @@
 # run with qsub -t 1:N run_firstlevel_AFNI.bash (where N is number of subjects
 # gets subject IDS from DNS.01/Analysis/All_Imaging/DNSids.txt
 
+# --- BEGIN GLOBAL DIRECTIVE -- 
+#$ -o $HOME/$JOB_NAME.$JOB_ID.out
+#$ -e $HOME/$JOB_NAME.$JOB_ID.out
+# -- END GLOBAL DIRECTIVE -- 
+
 SUBJ=$1
 BASEDIR=$(findexp DNS.01)
 OUTDIR=$BASEDIR/Analysis/All_Imaging/$SUBJ/numLS/
@@ -20,8 +25,18 @@ for i in `seq 354`; do
 	echo $(( 1 - $(echo "$FD > $fthr || $DVARS > $dthr" | bc -l) )); 
 done > $TMPOUTDIR/outliers.1D; 
 
+###### Read behavioral data ######
+mkdir $TMPOUTDIR/onsets
+SUBJ_NUM=$(grep $SUBJ $BASEDIR/Analysis/All_Imaging/DataLocations.csv | cut -d, -f10 | cut -d/ -f3 | cut -d_ -f2)
+if [ -e $BASEDIR/Data/Behavioral/ALL_RESPONSE_DATA_EVER/NumLS/eprime_txt/NumLS-$SUBJ_NUM-1.txt ]; then
+	perl $BASEDIR/Scripts/Behavioral/getNumLSEprime_AFNI.pl $BASEDIR/Data/Behavioral/ALL_RESPONSE_DATA_EVER/NumLS/eprime_txt/NumLS-$SUBJ_NUM-1.txt $TMPOUTDIR/onsets
+else
+	echo "***Can't locate NumLS eprime txt file $BASEDIR/Data/Behavioral/ALL_RESPONSE_DATA_EVER/NumLS/eprime_txt/NumLS-$SUBJ_NUM-1.txt for subject $SUBJ. NumLS glm will not be run!***";
+	exit 32;
+fi
+
 # incorrect_ct=`less ../onsets/Incorrect_onsets.txt | wc -l`; ### actually this won't work bc even if there are numbers in this file, wc will register as 0 (there is no new line!)
-any_incorrect=`grep "." $OUTDIR/onsets/Incorrect_onsets.txt | grep "0" | wc -l`; ### this should work, will be 1 if the file is non-empty and 0 otherwise
+any_incorrect=`grep "." $TMPOUTDIR/onsets/Incorrect_onsets.txt | grep "0" | wc -l`; ### this should work, will be 1 if the file is non-empty and 0 otherwise
 
 # create contrast files
 ######### don't forget to change # of leading 0s if you change polort!!!
@@ -56,16 +71,16 @@ if [ $any_incorrect -gt 0 ]; then
 else
 	echo "3dDeconvolve -input $OUTDIR/epiWarped_blur6mm.nii.gz -xout -polort 5 -mask $maskfile -num_stimts 9 \\" >> run_3ddeconvolve.sh
 fi
-echo "-stim_times 1 $OUTDIR/onsets/M_onsets.txt 'SPMG1(3)' -stim_label 1 Motor \\" >> run_3ddeconvolve.sh
-echo "-stim_times 2 $OUTDIR/onsets/J_onsets.txt 'SPMG1(3)' -stim_label 2 Size_judgment_only \\" >> run_3ddeconvolve.sh
-echo "-stim_times 3 $OUTDIR/onsets/CJ_onsets.txt 'SPMG1(3)' -stim_label 3 Computation_and_judgment \\" >> run_3ddeconvolve.sh
-echo "-stim_times 4 $OUTDIR/onsets/E_onsets.txt 'SPMG1(0.5)' -stim_label 4 Encoding_no_comp \\" >> run_3ddeconvolve.sh
-echo "-stim_times 5 $OUTDIR/onsets/EC_onsets.txt 'SPMG1(0.5)' -stim_label 5 Encoding_with_comp \\" >> run_3ddeconvolve.sh
-echo "-stim_times 6 $OUTDIR/onsets/Maintenance_onsets.txt 'SPMG1(4)' -stim_label 6 Maintenance \\" >> run_3ddeconvolve.sh
-echo "-stim_times 7 $OUTDIR/onsets/E_RJ_onsets.txt 'SPMG1(3)' -stim_label 7 Recall_and_judgment \\" >> run_3ddeconvolve.sh
-echo "-stim_times 8 $OUTDIR/onsets/E_RCJ_onsets.txt 'SPMG1(3)' -stim_label 8 Recall_comp_and_judg \\" >> run_3ddeconvolve.sh
-echo "-stim_times 9 $OUTDIR/onsets/EC_RJ_onsets.txt 'SPMG1(3)' -stim_label 9 Recall_and_judg_after_comp \\" >> run_3ddeconvolve.sh
-if [ $any_incorrect -gt 0 ]; then echo "-stim_times 10 $OUTDIR/onsets/Incorrect_onsets.txt 'SPMG1(3)' -stim_label 10 Incorrect_trials \\" >> run_3ddeconvolve.sh; fi # incorrect trials
+echo "-stim_times 1 $TMPOUTDIR/onsets/M_onsets.txt 'SPMG1(3)' -stim_label 1 Motor \\" >> run_3ddeconvolve.sh
+echo "-stim_times 2 $TMPOUTDIR/onsets/J_onsets.txt 'SPMG1(3)' -stim_label 2 Size_judgment_only \\" >> run_3ddeconvolve.sh
+echo "-stim_times 3 $TMPOUTDIR/onsets/CJ_onsets.txt 'SPMG1(3)' -stim_label 3 Computation_and_judgment \\" >> run_3ddeconvolve.sh
+echo "-stim_times 4 $TMPOUTDIR/onsets/E_onsets.txt 'SPMG1(0.5)' -stim_label 4 Encoding_no_comp \\" >> run_3ddeconvolve.sh
+echo "-stim_times 5 $TMPOUTDIR/onsets/EC_onsets.txt 'SPMG1(0.5)' -stim_label 5 Encoding_with_comp \\" >> run_3ddeconvolve.sh
+echo "-stim_times 6 $TMPOUTDIR/onsets/Maintenance_onsets.txt 'SPMG1(4)' -stim_label 6 Maintenance \\" >> run_3ddeconvolve.sh
+echo "-stim_times 7 $TMPOUTDIR/onsets/E_RJ_onsets.txt 'SPMG1(3)' -stim_label 7 Recall_and_judgment \\" >> run_3ddeconvolve.sh
+echo "-stim_times 8 $TMPOUTDIR/onsets/E_RCJ_onsets.txt 'SPMG1(3)' -stim_label 8 Recall_comp_and_judg \\" >> run_3ddeconvolve.sh
+echo "-stim_times 9 $TMPOUTDIR/onsets/EC_RJ_onsets.txt 'SPMG1(3)' -stim_label 9 Recall_and_judg_after_comp \\" >> run_3ddeconvolve.sh
+if [ $any_incorrect -gt 0 ]; then echo "-stim_times 10 $TMPOUTDIR/onsets/Incorrect_onsets.txt 'SPMG1(3)' -stim_label 10 Incorrect_trials \\" >> run_3ddeconvolve.sh; fi # incorrect trials
 echo "-censor outliers.1D \\" >> run_3ddeconvolve.sh
 echo "-full_first -fout -tout -errts ${outname}_errts.nii.gz \\" >> run_3ddeconvolve.sh
 echo "-glt 1 contrasts/judg_gr_motor.txt -glt_label 1 judg_gr_motor \\" >> run_3ddeconvolve.sh
@@ -102,6 +117,7 @@ rm ${outname}_Rerrts_sd.nii.gz
 rm ${outname}.nii  ### this file contains coef, fstat, and tstat for each condition and contrast, so since we are saving coefs and tstats separately for SPM, i think the only thing we lose here is fstat, which we probably dont want anyway
 
 mkdir -p $OUTDIR/$runname/
+mv $TMPOUTDIR/onsets $OUTDIR
 cp -r $TMPOUTDIR/* $OUTDIR/$runname/
 
 # -- BEGIN POST-USER -- 
