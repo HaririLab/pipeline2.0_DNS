@@ -29,8 +29,8 @@ antPre="highRes_" #pipenotes= Change away from HardCoding later
 templateDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
 templatePre=DNS500template_MNI #pipenotes= update/Change away from HardCoding later
 #T1=$2 #/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Data/Anat/20161103_21449/bia5_21449_006.nii.gz #pipenotes= update/Change away from HardCoding later
-threads=1 #default in case thread argument is not passed
 threads=$2
+if [ ${#threads} -eq 0 ]; then threads=1; fi # antsRegistrationSyN won't work properly if $threads is empty
 #baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 baseDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Scripts/pipeline2.0_DNS # using BASH_SOURCE doesn't work for cluster jobs bc they are saved as local copies to nodes (ARK)
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
