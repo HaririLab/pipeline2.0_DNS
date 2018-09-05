@@ -16,30 +16,45 @@
 #surface
 #graph Analysis construction
 
+#check sub vs subnum
+#check TMPDIR
+#check fslFD35 outdir or not?
 
 ###############################################################################
 #
 # Environment set up
 #
 ###############################################################################
-sub=$1
-subDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/All_Imaging/${sub}
-outDir=${subDir}/rest
-tmpOutDir=$TMPDIR
-tmpDir=$TMPDIR/tmp
-minProcEpi1=${tmpOutDir}/rest1/epiWarped.nii.gz
-minProcEpi2=${tmpOutDir}/rest2/epiWarped.nii.gz
-templateDir=/mnt/BIAC/munin4.dhe.duke.edu/Hariri/DNS.01/Analysis/Max/templates/DNS500 #pipenotes= update/Change away from HardCoding later
+# --- BEGIN GLOBAL DIRECTIVE -- 
+#SBATCH --output=/dscrhome/%u/rest_DNS.%j.out 
+#SBATCH --error=/dscrhome/%u/rest_DNS.%j.out 
+# SBATCH --mail-user=%u@duke.edu
+# SBATCH --mail-type=END
+#SBATCH --mem=12000 # max is 64G on common partition, 64-240G on common-large
+# -- END GLOBAL DIRECTIVE -
+
+source ~/.bash_profile
+
+sub=$1 #just number
+TOPDIR=/cifs/hariri-long
+imagingDir=$TOPDIR/Studies/DNS/Imaging
+outDir=$imagingDir/derivatives/epiMinProc_rest/sub-${sub}
+antDir=$imagingDir/derivatives/ANTs/sub-${sub}
+tmpDir=$outDir/tmp
+
+minProcEpi1=${outDir}/rest1/epiWarped.nii.gz
+minProcEpi2=${outDir}/rest2/epiWarped.nii.gz
+templateDir$TOPDIR/Templates/DNS/WholeBrain #pipenotes= update/Change away from HardCoding later
 templatePre=DNS500template_MNI_  #pipenotes= update/Change away from HardCoding later
-antDir=${subDir}/antCT
 antPre="highRes_" #pipenotes= Change away from HardCoding later
-FDthresh=.25 #pipenotes= Change away from HardCoding later, also find citations for what you decide likely power 2014, minimun of .5 fd 20DVARS suggested
+FDthresh=.25 #MLS: .35 in DIBS? #pipenotes= Change away from HardCoding later, also find citations for what you decide likely power 2014, minimun of .5 fd 20DVARS suggested
 DVARSthresh=1.55 #pipenotes= Change away from HardCoding later, also find citations for what you decide
 mkdir -p ${outDir}
 mkdir -p $tmpDir
+
 ##Nest minProc within overarching rest directory
 
-if [[ ! -f ${subDir}/rest1/epiWarped.nii.gz ]];then
+if [[ ! -f ${outDir}/rest1/epiWarped.nii.gz ]];then
 	echo ""
 	echo "!!!!!!!!!!!!!!!!!!!!!!No minimally processed Rest Scan Found!!!!!!!!!!!!!!!!!!!!!!!"
 	echo "!!!!!!!!!!!!!!need to run epi_minProc_DNS.sh first before this script!!!!!!!!!!!!!!"
@@ -47,7 +62,6 @@ if [[ ! -f ${subDir}/rest1/epiWarped.nii.gz ]];then
 	echo ""
 	exit
 fi
-mv ${subDir}/rest[12] ${tmpOutDir}/
 ###Figure out if you should process 2 run or 1
 if [[ -f ${minProcEpi2} ]];then
 	numRest=2
@@ -76,40 +90,40 @@ antsApplyTransforms -d 3 -t ${antDir}/${antPre}SubjectToTemplate1Warp.nii.gz -t 
 3dcalc -a ${tmpDir}/seg.wm.csf.depth.nii.gz -expr 'step(a-1)' -prefix ${tmpDir}/seg.wm.csf.erode.nii.gz ##pipenotes:for DBIS may want to edit this to move further away from WM because of smaller voxels
 
 for restNum in $(seq 1 $numRest);do
-	3dcalc -a ${tmpDir}/seg.wm.csf.erode.nii.gz -b ${tmpOutDir}/rest${restNum}/epiWarped.nii.gz -expr 'a*b' -prefix ${tmpDir}/rest${restNum}.wm.csf.nii.gz
+	3dcalc -a ${tmpDir}/seg.wm.csf.erode.nii.gz -b ${outDir}/rest${restNum}/epiWarped.nii.gz -expr 'a*b' -prefix ${tmpDir}/rest${restNum}.wm.csf.nii.gz
 	3dpc -pcsave 5 -prefix ${tmpDir}/pcRest${restNum}.wm.csf ${tmpDir}/rest${restNum}.wm.csf.nii.gz
-	mv ${tmpDir}/pcRest${restNum}.wm.csf_vec.1D ${tmpOutDir}/
+	mv ${tmpDir}/pcRest${restNum}.wm.csf_vec.1D ${outDir}/
 	####Setup Censoring
 	cenTRdelta=$(echo "($restNum - 1)*${numTR}" | bc)
-	awk -v thresh=$FDthresh '{if($1 > thresh) print NR}' ${tmpOutDir}/rest${restNum}/FD.1D | awk '{print ($1 - 1) " " $2}' > ${tmpDir}/raw${restNum}FDcensorTRs.1D #find TRs above threshold and subtract 1 from list to 0 index for afni's liking
-	awk -v thresh=$DVARSthresh '{if($1 > thresh) print NR}' ${tmpOutDir}/rest${restNum}/DVARS.1D | awk '{print ($1) " " $2}' > ${tmpDir}/raw${restNum}DVARScensorTRs.1D #find TRs above threshold and Don't subtract 1 from list because DVARS is based on change from first TR and has one less value, value 1 will therefore be for afni 1 index (TR number 2)
-	1deval -a ${tmpDir}/raw${restNum}FDcensorTRs.1D -expr "a+$cenTRdelta" > ${tmpOutDir}/FDcensorTRs${restNum}.1D
-	1deval -a ${tmpDir}/raw${restNum}DVARScensorTRs.1D -expr "a+$cenTRdelta" > ${tmpOutDir}/DVARScensorTRs${restNum}.1D
+	awk -v thresh=$FDthresh '{if($1 > thresh) print NR}' ${outDir}/rest${restNum}/FD.1D | awk '{print ($1 - 1) " " $2}' > ${tmpDir}/raw${restNum}FDcensorTRs.1D #find TRs above threshold and subtract 1 from list to 0 index for afni's liking
+	awk -v thresh=$DVARSthresh '{if($1 > thresh) print NR}' ${outDir}/rest${restNum}/DVARS.1D | awk '{print ($1) " " $2}' > ${tmpDir}/raw${restNum}DVARScensorTRs.1D #find TRs above threshold and Don't subtract 1 from list because DVARS is based on change from first TR and has one less value, value 1 will therefore be for afni 1 index (TR number 2)
+	1deval -a ${tmpDir}/raw${restNum}FDcensorTRs.1D -expr "a+$cenTRdelta" > ${outDir}/FDcensorTRs${restNum}.1D
+	1deval -a ${tmpDir}/raw${restNum}DVARScensorTRs.1D -expr "a+$cenTRdelta" > ${outDir}/DVARScensorTRs${restNum}.1D
 done
 
 
-cat ${tmpOutDir}/FDcensorTRs*.1D ${tmpOutDir}/DVARScensorTRs*.1D | sort -g | uniq > ${tmpOutDir}/censorTRs.1D #combine DVARS and FD TRs above threshold 
-cat ${tmpOutDir}/rest*/motion.1D > ${tmpOutDir}/allmotion.1D
-cat ${tmpOutDir}/rest*/motion_deriv.1D > ${tmpOutDir}/allmotion_deriv.1D
-cat ${tmpOutDir}/pcRest*.wm.csf_vec.1D > ${tmpOutDir}/allCompCorr.1D
+cat ${outDir}/FDcensorTRs*.1D ${outDir}/DVARScensorTRs*.1D | sort -g | uniq > ${outDir}/censorTRs.1D #combine DVARS and FD TRs above threshold 
+cat ${outDir}/rest*/motion.1D > ${outDir}/allmotion.1D
+cat ${outDir}/rest*/motion_deriv.1D > ${outDir}/allmotion_deriv.1D
+cat ${outDir}/pcRest*.wm.csf_vec.1D > ${outDir}/allCompCorr.1D
 
 ####Project everything out
-clist=$(cat ${tmpOutDir}/censorTRs.1D)
+clist=$(cat ${outDir}/censorTRs.1D)
 lenC=$(echo $clist | wc -w )
 ##pipeNotes: consider Changing GM mask to one based on all subjects eventually, the all Caucasian with 570 subs should be fine
 if [[ $lenC == 0 ]];then
-	3dTproject -input ${tmpOutDir}/rest*/epiWarped.nii.gz -mask ${templateDir}/${templatePre}BrainExtractionMask_2mmDil1.nii.gz  -prefix ${tmpOutDir}/epiPrepped_blur6mm.nii.gz -ort ${tmpOutDir}/allmotion.1D -ort ${tmpOutDir}/allmotion_deriv.1D -ort ${tmpOutDir}/allCompCorr.1D -polort 1 -bandpass 0.008 0.10 -blur 6
+	3dTproject -input ${outDir}/rest*/epiWarped.nii.gz -mask ${templateDir}/${templatePre}BrainExtractionMask_2mmDil1.nii.gz  -prefix ${outDir}/epiPrepped_blur6mm.nii.gz -ort ${outDir}/allmotion.1D -ort ${outDir}/allmotion_deriv.1D -ort ${outDir}/allCompCorr.1D -polort 1 -bandpass 0.008 0.10 -blur 6
 ##comments: Decided again a more restricted blur in mask with different compartments for cerebellum etc, because that approach seemed to be slighly harming tSNR actually and did not help with peak voxel or extent analyses when applied to Faces contrast. Decided to use a dilated Brain Extraction mask because this at least gets rid of crap that is way outside of brain. This saves space (slightly) and aids with cleaner visualizations. A GM mask can still later be applied for group analyses, this way we at least leave that up to the user.
 else
-	3dTproject -input ${tmpOutDir}/rest*/epiWarped.nii.gz -mask ${templateDir}/${templatePre}BrainExtractionMask_2mmDil1.nii.gz -prefix ${tmpOutDir}/epiPrepped_blur6mm.nii.gz -CENSORTR $clist -ort ${tmpOutDir}/allmotion.1D -ort ${tmpOutDir}/allmotion_deriv.1D -ort ${tmpOutDir}/allCompCorr.1D -polort 1 -bandpass 0.008 0.10 -blur 6
+	3dTproject -input ${outDir}/rest*/epiWarped.nii.gz -mask ${templateDir}/${templatePre}BrainExtractionMask_2mmDil1.nii.gz -prefix ${outDir}/epiPrepped_blur6mm.nii.gz -CENSORTR $clist -ort ${outDir}/allmotion.1D -ort ${outDir}/allmotion_deriv.1D -ort ${outDir}/allCompCorr.1D -polort 1 -bandpass 0.008 0.10 -blur 6
 ##comments: Decided against a more restricted blur in mask with different compartments for cerebellum etc, because that approach seemed to be slighly harming tSNR actually and did not help with peak voxel or extent analyses when applied to Faces contrast. Decided to use a dilated Brain Extraction mask because this at least gets rid of crap that is way outside of brain. This saves space (slightly) and aids with cleaner visualizations. A GM mask can still later be applied for group analyses, this way we at least leave that up to the user.
 fi
 
 rm -r $tmpDir
-cp -R $tmpOutDir/* $outDir
+
 # -- BEGIN POST-USER -- 
-echo "----JOB [$JOB_NAME.$JOB_ID] STOP [`date`]----" 
-mv $HOME/$JOB_NAME.$JOB_ID.out $outDir/$JOB_NAME.$JOB_ID.out	 
+echo "----JOB [$SLURM_JOB_ID] STOP [`date`]----" 
+mv /dscrhome/$USER/rest_DNS.$SLURM_JOB_ID.out $outDir/rest_DNS.$SLURM_JOB_ID.out 
 # -- END POST-USER -- 
 
 #pipenotes: Cen options in 3dTproject start at 0, currently ours based on awk start with 1. Make sure to subtract 1 before giving to tproject!!!!
