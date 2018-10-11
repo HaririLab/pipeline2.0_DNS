@@ -19,13 +19,15 @@
 ###############################################################################
 
 # --- BEGIN GLOBAL DIRECTIVE -- 
-#SBATCH --output=/dscrhome/%u/epi_minProc_DBIS.%j.out 
-#SBATCH --error=/dscrhome/%u/epi_minProc_DBIS.%j.out 
+#SBATCH --output=/dscrhome/%u/anat_DNS_fs5.3.%j.out 
+#SBATCH --error=/dscrhome/%u/anat_DNS_fs5.3.%j.out 
 # SBATCH --mail-user=%u@duke.edu
 # SBATCH --mail-type=END
 #SBATCH --mem=24000 # max is 64G on common partition, 64-240G on common-large
+#SBATCH -p scavenger
 # -- END GLOBAL DIRECTIVE -
-source ~/.bash_profile
+# source ~/.bash_profile
+source /cifs/hariri-long/Projects/Maria/DBIS/bash_profile #the scripts/bash_profile sets up env/paths for freesurfer v6 - changed mine to source /Projects/Maria/DBIS/bash_profile_f53 instead
 
 sub=$1
 threads=$2
@@ -41,7 +43,7 @@ templatePre=DNS500template_MNI #pipenotes= update/Change away from HardCoding la
 anatDir=$imagingDir/sourcedata/sub-${sub}/anat
 #flairDir=$TOPDIR/Data/OTAGO/${sub}/DMHDS/MR_3D_SAG_FLAIR_FS-_1.2_mm/
 graphicsDir=$TOPDIR/Studies/DNS/Graphics
-
+scriptDir=$TOPDIR/Scripts
 if [ ${#threads} -eq 0 ]; then threads=1; fi # antsRegistrationSyN won't work properly if $threads is empty
 #baseDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
@@ -49,10 +51,12 @@ export OMP_NUM_THREADS=$threads
 export SUBJECTS_DIR=$imagingDir/derivatives/freesurfer_v5.3
 export FREESURFER_HOME=$TOPDIR/Scripts/Tools/FreeSurfer_v5.3/freesurfer
 export ANTSPATH=$TOPDIR/Scripts/Tools/ants-2.2.0/bin/
-export PATH=$PATH:${scriptDir}/:${scriptDir/DNS/common}/:${scriptDir}/utils/  #DCCnotes: do this all in bash_profile?
+export PATH=$PATH:${scriptDir/pipeline2.0_DNS}/:${scriptDir/pipeline2.0_common}/:${scriptDir}/utils/  #DCCnotes: do this all in bash_profile?
 
 echo "----JOB [$SLURM_JOB_ID] SUBJ $sub START [`date`] on HOST [$HOSTNAME]----" 
 echo "----CALL: $0 $@----"
+
+if [[ -e $freeDir ]]; then rm -Rf $freeDir; fi
 
 ##Set up directory
 mkdir -p $QADir
@@ -60,14 +64,14 @@ mkdir -p $antDir
 mkdir -p $tmpDir
 cd $antDir
 
-#rm -r ${freeDir}
+rm -r ${freeDir}
 
 ##Set up directory
 mkdir -p $QADir
 cd $subDir
 mkdir -p $tmpDir
 
-if [[ ! -f ${freeDir}/surf/rh.pial ]];then
+if [[ ! -f ${freeDir}/surf/rh.pial ]] || [[ ! -f ${freeDir}/scripts/recon-all.done ]];then
 	###Prep for Freesurfer with PreSkull Stripped
 	#Citation: followed directions from https://surfer.nmr.mgh.harvard.edu/fswiki/UserContributions/FAQ (search skull)
 	echo ""
@@ -77,7 +81,7 @@ if [[ ! -f ${freeDir}/surf/rh.pial ]];then
 	echo ""
 	#rm -r ${freeDir}
 	cd $SUBJECTS_DIR
-	${FREESURFER_HOME}/bin/recon-all_noLink -all -s sub-${sub} -openmp $threads -i ${antDir}/${antPre}rWarped.nii.gz
+	${FREESURFER_HOME}/bin/recon-all -all -s sub-${sub} -openmp $threads -i ${antDir}/${antPre}rWarped.nii.gz
 	echo $freeDir
 	${FREESURFER_HOME}/bin/recon-all -s sub-$sub -localGI -openmp $threads
 else
@@ -119,5 +123,6 @@ gzip ${freeDir}/SUMA/*.nii
  
 # -- BEGIN POST-USER -- 
 echo "----JOB [$JOB_NAME.$JOB_ID] STOP [`date`]----" 
-mv $HOME/$JOB_NAME.$JOB_ID.out $antDir/$JOB_NAME.$JOB_ID.out	 
+# mv $HOME/$JOB_NAME.$JOB_ID.out $antDir/$JOB_NAME.$JOB_ID.out	 
+mv /dscrhome/$USER/anat_DNS_fs5.3.$SLURM_JOB_ID.out $antDir/anat_DNS_fs5.3.$SLURM_JOB_ID.out
 # -- END POST-USER -- 
